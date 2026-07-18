@@ -7,6 +7,7 @@ const { subscriptionService } = require('./subscription.service');
 const { duplicateService } = require('./duplicate.service');
 const { healthScoreService } = require('./health-score.service');
 const { summaryBuilderService } = require('./summary-builder.service');
+const { anomalyService } = require('./anomaly.service');
 
 const analysisPipelineService = {
   run: async function (transactions = []) {
@@ -21,6 +22,7 @@ const analysisPipelineService = {
     const paymentAnalysis = paymentMethodService.analyze(transactions);
     const subscriptionDetection = subscriptionService.detect(transactions);
     const duplicateDetection = duplicateService.findDuplicates(transactions);
+    const anomalies = await anomalyService.detect(transactions);
     const healthScore = healthScoreService.score({
       spendingAnalysis,
       merchantAnalysis,
@@ -29,6 +31,7 @@ const analysisPipelineService = {
       paymentAnalysis,
       subscriptionDetection,
       duplicateDetection,
+      anomalies,
     });
 
     const summary = summaryBuilderService.build({
@@ -40,6 +43,7 @@ const analysisPipelineService = {
       subscriptionDetection,
       duplicateDetection,
       healthScore,
+      anomalies,
     });
 
     return {
@@ -50,6 +54,7 @@ const analysisPipelineService = {
       paymentAnalysis,
       subscriptionDetection,
       duplicateDetection,
+      anomalies,
       healthScore,
       summary,
     };

@@ -9,6 +9,7 @@ const summaryBuilderService = {
       spending: analysis.spendingAnalysis || {},
       subscriptions: analysis.subscriptionDetection || [],
       duplicates: analysis.duplicateDetection || [],
+      anomalies: analysis.anomalies || [],
       cities: analysis.cityAnalysis || {},
       paymentMethods: analysis.paymentAnalysis || {},
       timeInsights: analysis.timeAnalysis || {},

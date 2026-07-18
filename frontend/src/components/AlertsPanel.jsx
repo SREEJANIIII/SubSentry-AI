@@ -3,7 +3,9 @@ import './AlertsPanel.css'
 export default function AlertsPanel({ spikes, duplicates, riskResult }) {
   const alerts = []
 
-  spikes.forEach((s) =>
+  const normalizedSpikes = Array.isArray(spikes) ? spikes : []
+
+  normalizedSpikes.forEach((s) =>
     alerts.push({
       kind: 'Spending Anomaly',
       detail: `${s.category} increased ${s.increase}% vs. recent average (₹${s.average.toLocaleString('en-IN')} → ₹${s.current.toLocaleString('en-IN')})`,

@@ -14,6 +14,11 @@ export function mapAnalysisToDashboard(analysisPayload = {}) {
       : []
   const monthlyTotals = spending.monthlyTotals ?? {}
   const categoryTotals = spending.categoryTotals ?? {}
+  const anomalies = Array.isArray(analysis?.anomalies)
+    ? analysis.anomalies
+    : Array.isArray(summary?.anomalies)
+      ? summary.anomalies
+      : []
 
   const trend = Object.entries(monthlyTotals)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -42,7 +47,12 @@ export function mapAnalysisToDashboard(analysisPayload = {}) {
     totals: categoryTotals,
     recurring,
     duplicates: mappedDuplicates,
-    spikes: [],
+    spikes: anomalies.map((item) => ({
+      category: item.category,
+      increase: item.increase ?? 0,
+      current: item.current ?? 0,
+      average: item.average ?? 0,
+    })),
     trend,
     health: {
       score: summary?.health?.score ?? analysis?.healthScore?.score ?? 0,

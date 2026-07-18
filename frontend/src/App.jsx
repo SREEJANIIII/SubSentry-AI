@@ -43,6 +43,7 @@ export default function App() {
     },
     subscriptions: recurring,
     duplicates,
+    anomalies: spikes,
     health: { score: health.score, grade: health.score >= 80 ? 'A' : health.score >= 60 ? 'B' : 'C' },
   })
 
@@ -61,7 +62,8 @@ export default function App() {
       })
 
       setAnalysisPayload(payload)
-      setInsight(generateInsight({ totals: payload?.data?.spendingAnalysis?.categoryTotals || {}, spikes: [], recurring: [], duplicates: [], health: { score: 0 }, riskResult: null }))
+      const backendSpikes = payload?.data?.anomalies || []
+      setInsight(generateInsight({ totals: payload?.data?.spendingAnalysis?.categoryTotals || {}, spikes: backendSpikes, recurring: [], duplicates: [], health: { score: 0 }, riskResult: null }))
 
       const gemmaPayload = await fetchJson('/api/gemma', {
         method: 'POST',
