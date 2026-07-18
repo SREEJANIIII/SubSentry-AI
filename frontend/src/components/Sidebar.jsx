@@ -1,3 +1,4 @@
+import logo from "../assets/logo.png";
 import './Sidebar.css'
 
 const NAV = [
@@ -19,10 +20,14 @@ export default function Sidebar({ active, onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-mark">SS</div>
+        <img
+  src={logo}
+  alt="SubSentry Logo"
+  className="sidebar-logo"
+/>
         <div>
           <div className="sidebar-name">SubSentry</div>
-          <div className="sidebar-tag">Financial Risk Intelligence</div>
+          <div className="sidebar-tag">SMART INSIGHTS, SAFER FINANCES!</div>
         </div>
       </div>
 

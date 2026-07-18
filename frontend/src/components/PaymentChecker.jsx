@@ -1,13 +1,30 @@
 import { useState } from 'react'
-import { checkPaymentRisk } from '../lib/analyze'
+import { fetchJson } from '../lib/api'
 import './PaymentChecker.css'
 
 export default function PaymentChecker({ onResult, result }) {
   const [value, setValue] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const run = () => {
-    const r = checkPaymentRisk(value)
-    onResult(r)
+  const run = async () => {
+    if (!value.trim()) return
+    setLoading(true)
+    setError('')
+
+    try {
+      const payload = await fetchJson('/api/payment-risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: value }),
+      })
+
+      onResult(payload.data)
+    } catch (err) {
+      setError(err.message || 'Unable to assess payment risk.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -26,10 +43,12 @@ export default function PaymentChecker({ onResult, result }) {
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && run()}
         />
-        <button className="btn-primary" onClick={run} disabled={!value.trim()}>
-          Check
+        <button className="btn-primary" onClick={run} disabled={!value.trim() || loading}>
+          {loading ? 'Checking…' : 'Check'}
         </button>
       </div>
+
+      {error && <div className="upload-error">{error}</div>}
 
       {result && (
         <div className={`payment-result payment-result--${result.level.toLowerCase()}`}>

@@ -8,13 +8,19 @@ const subscriptionController = require('../controllers/subscription.controller')
 const duplicateController = require('../controllers/duplicate.controller');
 const anomalyController = require('../controllers/anomaly.controller');
 const gemmaController = require('../controllers/gemma.controller');
+const analysisController = require('../controllers/analysis.controller');
+const paymentRiskController = require('../controllers/payment-risk.controller');
+const { upload } = require('../utils/upload');
 
 router.get('/health', healthController.getHealth);
-router.post('/csv/upload', csvController.processFile);
+router.post('/csv/upload', upload.single('file'), csvController.processFile);
+router.post('/analysis', analysisController.runAnalysis);
 router.get('/spending', spendingController.getSpendingSummary);
 router.get('/subscriptions', subscriptionController.getSubscriptions);
 router.get('/duplicates', duplicateController.getDuplicates);
 router.get('/anomalies', anomalyController.getAnomalies);
-router.get('/gemma', gemmaController.getInsight);
+router.post('/anomalies', anomalyController.getAnomalies);
+router.post('/gemma', gemmaController.getInsight);
+router.post('/payment-risk', paymentRiskController.assess);
 
 module.exports = router;

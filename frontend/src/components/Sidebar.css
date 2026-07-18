@@ -20,21 +20,6 @@
   margin-bottom: 18px;
 }
 
-.sidebar-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: linear-gradient(155deg, var(--gold-bright), var(--gold-dim));
-  color: #1a1006;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
 .sidebar-name {
   font-family: var(--font-display);
   font-size: 16.5px;
@@ -111,4 +96,16 @@
 
 @media (max-width: 900px) {
   .sidebar { display: none; }
+}
+
+.sidebar-logo {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
