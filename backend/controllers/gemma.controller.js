@@ -8,6 +8,7 @@ exports.getInsight = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      explanation: result?.explanation,
       data: result?.data || result,
     });
   } catch (error) {

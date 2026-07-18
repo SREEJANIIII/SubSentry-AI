@@ -62,20 +62,47 @@ export default function App() {
       })
 
       setAnalysisPayload(payload)
-      const backendSpikes = payload?.data?.anomalies || []
-      setInsight(generateInsight({ totals: payload?.data?.spendingAnalysis?.categoryTotals || {}, spikes: backendSpikes, recurring: [], duplicates: [], health: { score: 0 }, riskResult: null }))
+      
+      const newDashboard = mapAnalysisToDashboard(payload)
+      const freshSummary = {
+        overview: {
+          totalSpent: newDashboard.totalSpend,
+          totalTransactions: rows.length,
+          subscriptionCount: newDashboard.recurring.length,
+          duplicateCount: newDashboard.duplicates.length,
+          healthScore: newDashboard.health.score,
+          healthGrade: newDashboard.health.score >= 80 ? 'A' : newDashboard.health.score >= 60 ? 'B' : 'C',
+        },
+        subscriptions: newDashboard.recurring,
+        duplicates: newDashboard.duplicates,
+        anomalies: newDashboard.spikes,
+        health: { score: newDashboard.health.score, grade: newDashboard.health.score >= 80 ? 'A' : newDashboard.health.score >= 60 ? 'B' : 'C' },
+      }
+
+      const freshInsightText = generateInsight({ 
+        totals: newDashboard.totals, 
+        spikes: newDashboard.spikes, 
+        recurring: newDashboard.recurring, 
+        duplicates: newDashboard.duplicates, 
+        health: newDashboard.health, 
+        riskResult: null 
+      })
+      
+      setInsight(freshInsightText)
 
       const gemmaPayload = await fetchJson('/api/gemma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: buildSummaryPayload() }),
+        body: JSON.stringify({ summary: freshSummary }),
       }).catch(() => null)
 
-      if (gemmaPayload?.data?.insight?.highlights) {
-        const gemmaInsight = gemmaPayload.data.insight.highlights.join(' ') || insightText
+      if (gemmaPayload?.explanation) {
+        setInsight(gemmaPayload.explanation)
+      } else if (gemmaPayload?.data?.insight?.highlights) {
+        const gemmaInsight = gemmaPayload.data.insight.highlights.join(' ') || freshInsightText
         setInsight(gemmaInsight)
       } else {
-        setInsight(insightText)
+        setInsight(freshInsightText)
       }
     } catch (err) {
       setAnalysisPayload(null)
@@ -93,10 +120,10 @@ export default function App() {
       const payload = await fetchJson('/api/gemma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: buildSummaryPayload() }),
+        body: JSON.stringify({ summary: buildSummaryPayload(), question }),
       }).catch(() => null)
 
-      const gemmaInsight = payload?.data?.insight?.highlights?.join(' ') || fallback
+      const gemmaInsight = payload?.explanation || payload?.data?.insight?.highlights?.join(' ') || fallback
       setInsight(gemmaInsight)
       return gemmaInsight
     } catch {

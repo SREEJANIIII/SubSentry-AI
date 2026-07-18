@@ -56,6 +56,10 @@ def predict(data: dict):
 
     # Convert JSON to DataFrame
     df = pd.DataFrame([data])
+    if "date" in df.columns:
+        df = df.drop(columns=["date"])
+    if "transaction_id" in df.columns:
+        df = df.drop(columns=["transaction_id"])
 
     categorical_columns = [
         "merchant",

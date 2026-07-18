@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 import './AIInsights.css'
 
 export default function AIInsights({ insight, onAsk }) {
@@ -24,7 +25,9 @@ export default function AIInsights({ insight, onAsk }) {
         <div className="ai-badge mono">summary only, no raw data sent</div>
       </div>
 
-      <div className="ai-body mono">{insight}</div>
+      <div className="ai-body">
+        <ReactMarkdown>{insight}</ReactMarkdown>
+      </div>
 
       <div className="ai-followup">
         <div className="ai-followup-label">Ask a follow-up</div>
@@ -40,7 +43,11 @@ export default function AIInsights({ insight, onAsk }) {
             {asking ? 'Thinking…' : 'Ask'}
           </button>
         </div>
-        {answer && <div className="ai-answer mono">{answer}</div>}
+        {answer && (
+          <div className="ai-answer">
+            <ReactMarkdown>{answer}</ReactMarkdown>
+          </div>
+        )}
       </div>
     </div>
   )
