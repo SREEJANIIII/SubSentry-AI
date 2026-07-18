@@ -2,9 +2,17 @@ const { anomalyService } = require('../services/anomaly.service');
 
 exports.getAnomalies = async (req, res) => {
   try {
-    const result = await anomalyService.detect();
-    res.json(result);
+    const transactionData = req.body;
+
+    const result = await anomalyService.detect(transactionData);
+
+    res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Controller Error:", error.message);
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 };
