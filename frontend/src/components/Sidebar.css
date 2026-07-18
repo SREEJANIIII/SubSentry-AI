@@ -71,12 +71,12 @@
 }
 
 .sidebar-link:hover {
-  background: rgb(1, 23, 14);
+  background: rgb(3, 60, 36);
   color: var(--ink);
 }
 
 .sidebar-link.is-active {
-  background: var(--bg-panel-raised);
+  background: #04100a;
   color: var(--gold-bright);
 }
 

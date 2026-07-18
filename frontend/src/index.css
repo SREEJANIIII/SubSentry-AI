@@ -11,7 +11,7 @@
   --ink-muted: #8FA895;
   --ink-faint: #5D7869;
 
-  --gold: #E3A23D;
+  --gold: #cc6017;
   --gold-bright: #F4C05C;
   --gold-dim: #8A6A30;
 
@@ -34,9 +34,10 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg-deep);
+  background: black;
   color: var(--ink);
   font-family: var(--font-body);
+  scrollbar-width: none;
 }
 
 body {
@@ -66,17 +67,8 @@ button {
   background: var(--gold);
   color: var(--bg-deep);
 }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--bg-deep); }
-::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
-
-.mono { font-family: var(--font-mono); }
-
 .btn-primary {
-  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  background: linear-gradient(180deg, var(--gold-bright), #b06b00);
   color: #201203;
   border: none;
   padding: 11px 20px;
@@ -113,7 +105,7 @@ button {
 }
 
 .card {
-  background: var(--bg-panel);
+  background: #04100a;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
 }
