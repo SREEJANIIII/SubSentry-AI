@@ -123,14 +123,13 @@ const subscriptionService = {
     //---------------------------------
 
     const merchantLower = merchant.toLowerCase();
-
-    if (
-      KNOWN_SUBSCRIPTIONS.some((m) =>
-        merchantLower.includes(m.toLowerCase())
-      )
-    ) {
-      score += 40;
-    }
+if (
+  Object.keys(CATEGORY_MAP).some((m) =>
+    merchantLower.includes(m.toLowerCase())
+  )
+) {
+  score += 40;
+}
 
     //---------------------------------
     // 2. Monthly interval (30)
@@ -206,7 +205,7 @@ const subscriptionService = {
     };
   },
 
-  describeFrequency(interval) {
+    describeFrequency(interval) {
     if (interval >= 25 && interval <= 35)
       return "Monthly";
 
@@ -221,6 +220,54 @@ const subscriptionService = {
 
     return "Recurring";
   },
+};
+
+subscriptionService.detectSubscriptionOverlap = function (subscriptions = []) {
+  const grouped = {};
+
+  subscriptions.forEach((sub) => {
+    let category = "Other";
+
+    for (const merchant in CATEGORY_MAP) {
+      if (
+        sub.merchant.toLowerCase().includes(merchant.toLowerCase())
+      ) {
+        category = CATEGORY_MAP[merchant];
+        break;
+      }
+    }
+
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+
+    grouped[category].push(sub);
+  });
+
+  return Object.entries(grouped)
+    .filter(([_, services]) => services.length > 1)
+    .map(([category, services]) => {
+      const totalCost = services.reduce(
+        (sum, service) => sum + service.averageCost,
+        0
+      );
+
+      const cheapest = Math.min(
+        ...services.map((service) => service.averageCost)
+      );
+
+      return {
+        category,
+        count: services.length,
+        services: services.map((service) => ({
+          merchant: service.merchant,
+          averageCost: service.averageCost,
+          renewalDate: service.estimatedRenewalDate,
+        })),
+        potentialSavings: Number((totalCost - cheapest).toFixed(2)),
+        recommendation: `You have ${services.length} ${category.toLowerCase()} subscriptions. Consider cancelling one to save approximately ₹${(totalCost - cheapest).toFixed(2)} per month.`,
+      };
+    });
 };
 
 module.exports = { subscriptionService };
