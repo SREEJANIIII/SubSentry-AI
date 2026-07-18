@@ -1,90 +1,225 @@
+const CATEGORY_MAP = {
+  "Netflix": "Entertainment",
+  "Prime Video": "Entertainment",
+  "Amazon Prime": "Entertainment",
+  "Disney+": "Entertainment",
+  "Disney+ Hotstar": "Entertainment",
+  "Hotstar": "Entertainment",
+  "SonyLIV": "Entertainment",
+  "Zee5": "Entertainment",
+  "JioCinema": "Entertainment",
+
+  "Spotify": "Music",
+  "Apple Music": "Music",
+  "YouTube Premium": "Music",
+  "Gaana": "Music",
+  "Wynk": "Music",
+
+  "Dropbox": "Cloud Storage",
+  "Google One": "Cloud Storage",
+  "iCloud": "Cloud Storage",
+  "OneDrive": "Cloud Storage",
+
+  "ChatGPT": "AI Tools",
+  "Claude": "AI Tools",
+  "Gemini": "AI Tools",
+  "Perplexity": "AI Tools",
+
+  "Canva": "Design",
+  "Adobe": "Design",
+
+  "Zoom": "Productivity",
+  "Microsoft 365": "Productivity",
+  "Notion": "Productivity",
+  "Slack": "Productivity",
+};
+
 const subscriptionService = {
-  detect: function (transactions = []) {
+  detect(transactions = []) {
     if (!Array.isArray(transactions)) {
-      throw new Error('Transactions must be an array.');
+      throw new Error("Transactions must be an array.");
     }
 
-    const validTransactions = transactions.filter((transaction) => {
-      return typeof transaction?.amount === 'number' && Number.isFinite(transaction.amount);
-    });
+    const validTransactions = transactions.filter(
+      (t) =>
+        typeof t.amount === "number" &&
+        Number.isFinite(t.amount) &&
+        t.date &&
+        t.merchant
+    );
 
-    const grouped = validTransactions.reduce((acc, transaction) => {
-      const merchant = transaction.merchant || 'Unknown';
-      if (!acc[merchant]) {
-        acc[merchant] = [];
-      }
-      acc[merchant].push(transaction);
-      return acc;
-    }, {});
+    const grouped = {};
+
+    for (const transaction of validTransactions) {
+      const merchant = transaction.merchant.trim();
+
+      if (!grouped[merchant]) grouped[merchant] = [];
+
+      grouped[merchant].push(transaction);
+    }
 
     return Object.entries(grouped)
       .map(([merchant, merchantTransactions]) => {
-        const sortedTransactions = [...merchantTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-        const analysis = this.analyzeMerchantPattern(sortedTransactions);
+        const sorted = merchantTransactions.sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
 
-        if (!analysis.isSubscription) {
-          return null;
-        }
+        const analysis = this.analyzeMerchantPattern(
+          merchant,
+          sorted
+        );
+
+        if (!analysis.isSubscription) return null;
 
         return {
           merchant,
-          averageCost: analysis.averageCost,
+          averageCost: Number(analysis.averageCost.toFixed(2)),
           frequency: analysis.frequency,
           estimatedRenewalDate: analysis.estimatedRenewalDate,
+          confidence: analysis.confidence,
         };
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => b.confidence - a.confidence);
   },
 
-  analyzeMerchantPattern(transactions = []) {
-    if (transactions.length < 2) {
+  analyzeMerchantPattern(merchant, transactions) {
+    if (transactions.length < 2)
       return { isSubscription: false };
-    }
 
-    const amounts = transactions.map((transaction) => transaction.amount);
-    const averageCost = amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
+    const amounts = transactions.map((t) => t.amount);
+
+    const averageCost =
+      amounts.reduce((a, b) => a + b, 0) / amounts.length;
+
+    //---------------------------------
+    // INTERVAL ANALYSIS
+    //---------------------------------
 
     const intervals = [];
-    for (let index = 1; index < transactions.length; index += 1) {
-      const previousDate = new Date(transactions[index - 1].date);
-      const currentDate = new Date(transactions[index].date);
-      const diffDays = (currentDate - previousDate) / (1000 * 60 * 60 * 24);
-      intervals.push(diffDays);
+
+    for (let i = 1; i < transactions.length; i++) {
+      const previous = new Date(transactions[i - 1].date);
+      const current = new Date(transactions[i].date);
+
+      intervals.push(
+        (current - previous) /
+          (1000 * 60 * 60 * 24)
+      );
     }
 
-    const averageInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
-    const isMonthlyLike = intervals.every((interval) => interval >= 20 && interval <= 45);
-    const amountConsistency = amounts.every((amount) => Math.abs(amount - averageCost) <= averageCost * 0.3);
+    const averageInterval =
+      intervals.reduce((a, b) => a + b, 0) /
+      intervals.length;
 
-    const isSubscription = isMonthlyLike && amountConsistency;
+    //---------------------------------
+    // SCORING
+    //---------------------------------
 
-    if (!isSubscription) {
+    let score = 0;
+
+    //---------------------------------
+    // 1. Known merchant (40)
+    //---------------------------------
+
+    const merchantLower = merchant.toLowerCase();
+
+    if (
+      KNOWN_SUBSCRIPTIONS.some((m) =>
+        merchantLower.includes(m.toLowerCase())
+      )
+    ) {
+      score += 40;
+    }
+
+    //---------------------------------
+    // 2. Monthly interval (30)
+    //---------------------------------
+
+    const monthlyIntervals = intervals.filter(
+      (d) => d >= 20 && d <= 45
+    );
+
+    const intervalRatio =
+      monthlyIntervals.length / intervals.length;
+
+    if (intervalRatio >= 0.7)
+      score += 30;
+    else if (intervalRatio >= 0.5)
+      score += 20;
+    else if (intervalRatio >= 0.3)
+      score += 10;
+
+    //---------------------------------
+    // 3. Similar amounts (20)
+    //---------------------------------
+
+    const similarAmounts = amounts.filter(
+      (a) =>
+        Math.abs(a - averageCost) <= averageCost * 0.35
+    );
+
+    const amountRatio =
+      similarAmounts.length / amounts.length;
+
+    if (amountRatio >= 0.8)
+      score += 20;
+    else if (amountRatio >= 0.6)
+      score += 10;
+
+    //---------------------------------
+    // 4. Number of payments (10)
+    //---------------------------------
+
+    if (transactions.length >= 6)
+      score += 10;
+    else if (transactions.length >= 4)
+      score += 7;
+    else if (transactions.length >= 2)
+      score += 5;
+
+    //---------------------------------
+    // DECISION
+    //---------------------------------
+
+    const isSubscription = score >= 50;
+
+    if (!isSubscription)
       return { isSubscription: false };
-    }
 
-    const lastTransaction = transactions[transactions.length - 1];
-    const estimatedRenewalDate = this.addMonths(new Date(lastTransaction.date), 1);
+    const last =
+      transactions[transactions.length - 1];
+
+    const renewal = new Date(last.date);
+    renewal.setMonth(renewal.getMonth() + 1);
 
     return {
       isSubscription: true,
+      confidence: score,
       averageCost,
-      frequency: this.describeFrequency(averageInterval),
-      estimatedRenewalDate: estimatedRenewalDate.toISOString().slice(0, 10),
+      frequency: this.describeFrequency(
+        averageInterval
+      ),
+      estimatedRenewalDate: renewal
+        .toISOString()
+        .slice(0, 10),
     };
   },
 
-  describeFrequency(intervalDays) {
-    if (intervalDays >= 20 && intervalDays <= 45) {
-      return 'monthly';
-    }
+  describeFrequency(interval) {
+    if (interval >= 25 && interval <= 35)
+      return "Monthly";
 
-    return 'custom';
-  },
+    if (interval >= 6 && interval <= 8)
+      return "Weekly";
 
-  addMonths(date, months) {
-    const result = new Date(date);
-    result.setMonth(result.getMonth() + months);
-    return result;
+    if (interval >= 13 && interval <= 17)
+      return "Bi-Weekly";
+
+    if (interval >= 80 && interval <= 100)
+      return "Quarterly";
+
+    return "Recurring";
   },
 };
 
