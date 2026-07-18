@@ -1,16 +1,56 @@
-# React + Vite
+# SubSentry AI — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React (JavaScript, no TypeScript) dashboard for the SubSentry AI hackathon
+project: CSV upload, spending analysis, subscription/duplicate detection,
+spending-spike alerts, a payment authenticity checker, and a Gemma-style AI
+report — all wired to run standalone in the browser with a client-side
+analysis engine (`src/lib/analyze.js`) that mirrors the Node/Express backend
+described in the architecture doc.
 
-Currently, two official plugins are available:
+## Run it
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Opens on `http://localhost:5173`. Loads with sample data pre-populated —
+click **Use sample data** any time, or drag in a real CSV
+(`Date, Merchant, Category, Amount` columns).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Wiring in the real backend / Gemma
 
-## Expanding the ESLint configuration
+Everything in `src/lib/analyze.js` currently runs in the browser so the UI
+works with zero backend. To connect the real pipeline:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Replace the CSV parse in `UploadPanel.jsx` with a `POST` to your
+   Express `/upload` endpoint, and set `transactions` from the response.
+2. Replace `generateInsight()` / `answerFollowUp()` in `App.jsx` with a
+   fetch to your `/insights` endpoint that calls Gemma with the summarized
+   JSON (not raw transactions).
+3. `checkPaymentRisk()` in `analyze.js` is the rule-based heuristic from
+   Step 6 — swap in any server-side check the same way if you add one.
+
+## Structure
+
+```
+src/
+  App.jsx                 # layout + state, wires everything together
+  lib/analyze.js           # spending/subscription/risk/health-score logic
+  components/
+    Sidebar, TopBar
+    HealthStamp             # financial health score seal
+    UploadPanel              # CSV upload / drag-drop
+    OverviewCards             # summary stat tiles
+    SpendingCharts             # pie + line charts (recharts)
+    SubscriptionsPanel          # recurring charges + duplicate overlaps
+    AlertsPanel                  # spikes, overlaps, high-risk payments
+    PaymentChecker                 # UPI/link risk checker
+    AIInsights                      # Gemma report + follow-up question
+```
+
+## Theme
+
+Dark green background (`#08170F`) with warm gold/amber accents
+(`#E3A23D` / `#F4C05C`), `Fraunces` for display type, `Inter` for body,
+`IBM Plex Mono` for ledger/data. Tokens live in `src/index.css`.

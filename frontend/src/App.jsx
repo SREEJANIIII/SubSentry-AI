@@ -1,122 +1,145 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useMemo, useState } from 'react'
+import Sidebar from './components/Sidebar.jsx'
+import TopBar from './components/TopBar.jsx'
+import HealthStamp from './components/HealthStamp.jsx'
+import UploadPanel from './components/UploadPanel.jsx'
+import OverviewCards from './components/OverviewCards.jsx'
+import SpendingCharts from './components/SpendingCharts.jsx'
+import SubscriptionsPanel from './components/SubscriptionsPanel.jsx'
+import AlertsPanel from './components/AlertsPanel.jsx'
+import PaymentChecker from './components/PaymentChecker.jsx'
+import AIInsights from './components/AIInsights.jsx'
+import {
+  SAMPLE_TRANSACTIONS,
+  categoryTotals,
+  detectRecurring,
+  detectDuplicates,
+  detectSpike,
+  financialHealthScore,
+  generateInsight,
+  answerFollowUp,
+} from './lib/analyze.js'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function monthlyTrend(transactions) {
+  const byMonth = {}
+  for (const t of transactions) {
+    const m = t.date.slice(0, 7)
+    byMonth[m] = (byMonth[m] || 0) + Number(t.amount)
+  }
+  return Object.entries(byMonth)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, total]) => ({ month, total }))
 }
 
-export default App
+export default function App() {
+  const [transactions, setTransactions] = useState(SAMPLE_TRANSACTIONS)
+  const [fileName, setFileName] = useState('sample-transactions.csv')
+  const [active, setActive] = useState('overview')
+  const [riskResult, setRiskResult] = useState(null)
+
+  const totals = useMemo(() => categoryTotals(transactions), [transactions])
+  const recurring = useMemo(() => detectRecurring(transactions), [transactions])
+  const duplicates = useMemo(() => detectDuplicates(recurring), [recurring])
+  const spikes = useMemo(() => detectSpike(transactions), [transactions])
+  const trend = useMemo(() => monthlyTrend(transactions), [transactions])
+
+  const health = useMemo(
+    () => financialHealthScore({ totals, recurring, duplicates, spikes, riskScore: riskResult?.score }),
+    [totals, recurring, duplicates, spikes, riskResult]
+  )
+
+  const insight = useMemo(
+    () => generateInsight({ totals, spikes, recurring, duplicates, health, riskResult }),
+    [totals, spikes, recurring, duplicates, health, riskResult]
+  )
+
+  const totalSpend = Object.values(totals).reduce((a, b) => a + b, 0)
+  const topCategory = Object.entries(totals).sort((a, b) => b[1] - a[1])[0]
+  const avgTransaction = transactions.length ? totalSpend / transactions.length : 0
+  const largestExpense = transactions.reduce((max, t) => Math.max(max, Number(t.amount)), 0)
+  const potentialSavings = duplicates.reduce((sum, d) => sum + d.potentialSavings, 0)
+
+  const handleData = (rows, name) => {
+    setTransactions(rows)
+    setFileName(name)
+    setRiskResult(null)
+  }
+
+  const handleAsk = async (question) => {
+    await new Promise((r) => setTimeout(r, 500))
+    return answerFollowUp(question, { totals, duplicates, recurring, spikes })
+  }
+
+  return (
+    <div className="app-shell">
+      <Sidebar active={active} onNavigate={setActive} />
+
+      <div className="app-main">
+        <TopBar
+          fileName={fileName}
+          onUploadClick={() => document.getElementById('upload-panel')?.scrollIntoView({ behavior: 'smooth' })}
+        />
+
+        <div className="app-content">
+          <section id="overview" className="section">
+            <HealthStamp score={health.score} deductions={health.deductions} />
+            <div className="section-spacer" />
+            <OverviewCards
+              totalSpend={totalSpend}
+              topCategory={topCategory}
+              avgTransaction={avgTransaction}
+              largestExpense={largestExpense}
+              subscriptionCount={recurring.length}
+              potentialSavings={potentialSavings}
+            />
+            <div className="section-spacer" />
+            <UploadPanel onData={handleData} onUseSample={() => handleData(SAMPLE_TRANSACTIONS, 'sample-transactions.csv')} fileName={fileName} />
+          </section>
+
+          <section id="charts" className="section">
+            <div className="section-heading">
+              <div className="eyebrow"></div>
+              <h2>Spending Analysis</h2>
+            </div>
+            <SpendingCharts totals={totals} trend={trend} />
+          </section>
+
+          <section id="subscriptions" className="section">
+            <div className="section-heading">
+              <div className="eyebrow"></div>
+              <h2>Subscriptions &amp; Overlaps</h2>
+            </div>
+            <SubscriptionsPanel recurring={recurring} duplicates={duplicates} />
+          </section>
+
+          <section id="alerts" className="section">
+            <div className="section-heading">
+              <div className="eyebrow"></div>
+              <h2>Alerts</h2>
+            </div>
+            <AlertsPanel spikes={spikes} duplicates={duplicates} riskResult={riskResult} />
+          </section>
+
+          <section id="payment-check" className="section">
+            <div className="section-heading">
+              <div className="eyebrow"></div>
+              <h2>Payment Check</h2>
+            </div>
+            <PaymentChecker result={riskResult} onResult={setRiskResult} />
+          </section>
+
+          <section id="ai-report" className="section">
+            <div className="section-heading">
+              <div className="eyebrow"></div>
+              <h2>AI Report</h2>
+            </div>
+            <AIInsights insight={insight} onAsk={handleAsk} />
+          </section>
+
+          <footer className="app-footer mono">SubSentry AI — financial risk intelligence, generated for demo purposes only.</footer>
+        </div>
+      </div>
+    </div>
+  )
+}
