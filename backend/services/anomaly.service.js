@@ -15,8 +15,8 @@ const anomalyService = {
 
     let prediction = null;
     try {
-      if (process.env.ENABLE_ML !== 'false') {
-        const mlResponse = await axios.post('http://127.0.0.1:8000/predict', { transactions }, { timeout: 1500 });
+      if (process.env.ENABLE_ML !== 'false' && transactions.length > 0) {
+        const mlResponse = await axios.post('http://127.0.0.1:8000/predict', transactions[0], { timeout: 1500 });
         prediction = mlResponse?.data || null;
       }
     } catch (error) {

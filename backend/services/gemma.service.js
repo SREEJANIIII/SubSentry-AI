@@ -52,7 +52,9 @@ const gemmaService = {
     }
 
     const fallback = buildFallbackInsight(input);
-    const prompt = `You are an AI financial analyst. Summarize the following financial snapshot.\n\n${JSON.stringify(input, null, 2)}\n\nReturn a concise explanation and recommendations.`;
+    const prompt = input.question 
+      ? `You are an AI financial analyst. A user is asking a follow up question about their financial snapshot.\n\nSnapshot:\n${JSON.stringify(input.summary || input, null, 2)}\n\nQuestion: ${input.question}\n\nAnswer the question concisely.`
+      : `You are an AI financial analyst. Summarize the following financial snapshot.\n\n${JSON.stringify(input.summary || input, null, 2)}\n\nReturn a concise explanation and recommendations.`;
 
     try {
       if (!ai) {
@@ -68,7 +70,7 @@ const gemmaService = {
 
       return {
         success: true,
-        explanation: text || JSON.stringify(fallback),
+        explanation: text || null,
         data: fallback,
       };
     } catch (error) {
@@ -76,7 +78,7 @@ const gemmaService = {
 
       return {
         success: false,
-        explanation: JSON.stringify(fallback),
+        explanation: null,
         data: fallback,
       };
     }

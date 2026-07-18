@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import Papa from 'papaparse'
 import './UploadPanel.css'
 
 export default function UploadPanel({ onData, fileName, loading, serverError }) {
@@ -7,37 +6,37 @@ export default function UploadPanel({ onData, fileName, loading, serverError }) 
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState(null)
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return
     setError(null)
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const rows = results.data
-          .map((row) => ({
-            transaction_id: row.transaction_id || row.id || row.txn_id || '',
-            date: row.Date || row.date || row.transaction_date || row.txn_date || '',
-            merchant: row.Merchant || row.merchant || row.merchant_name || row.payee || '',
-            category: row.Category || row.category || row.expense_category || row.type || '',
-            amount: Number(row.Amount || row.amount || row.total || row.value),
-            payment_method: row.payment_method || row.paymentMethod || row.method || '',
-            city: row.city || row.City || row.location || '',
-            hour: row.hour || row.Hour || '',
-            weekday: row.weekday || row.Weekday || '',
-            is_weekend: row.is_weekend || row.isWeekend || row.weekend || '',
-          }))
-          .filter((row) => row.date && row.merchant && !Number.isNaN(row.amount))
+    setDragActive(false)
+    
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    try {
+      const response = await fetch('/api/csv/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      
+      const payload = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(payload.message || 'Upload failed')
+      }
+      
+      const rows = payload?.data?.transactions
+      
+      if (!rows || rows.length === 0) {
+        setError('Could not find valid rows. Expected columns like Date, Merchant, Category, Amount.')
+        return
+      }
 
-        if (rows.length === 0) {
-          setError('Could not find valid rows. Expected columns like Date, Merchant, Category, Amount.')
-          return
-        }
-
-        onData(rows, file.name)
-      },
-      error: () => setError('Could not parse that file as CSV.'),
-    })
+      onData(rows, file.name)
+    } catch (err) {
+      setError(err.message || 'Could not upload that file.')
+    }
   }
 
   const displayError = serverError || error
